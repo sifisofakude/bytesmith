@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "compiler"
-include("java-compiler")
+include("lib")
