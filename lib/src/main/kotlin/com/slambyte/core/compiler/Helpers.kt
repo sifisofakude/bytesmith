@@ -1,4 +1,4 @@
-package com.slambyte.core.compiler
+package io.github.sifisofakude.core.compiler
 
 import java.io.File
 
@@ -6,7 +6,7 @@ import java.io.File
 import org.eclipse.jdt.internal.compiler.IErrorHandlingPolicy
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants
 
-import com.slambyte.util.filesystem.*
+import io.github.sifisofakude.filesystem.*
 
 fun CharArray.string(): String  {
   val result = StringBuilder()

@@ -1,4 +1,4 @@
-package com.slambyte.core.compiler
+package io.github.sifisofakude.core.compiler
 
 import org.eclipse.jdt.internal.compiler.ClassFile
 import org.eclipse.jdt.internal.compiler.CompilationResult

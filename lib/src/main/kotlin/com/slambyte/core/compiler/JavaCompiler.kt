@@ -1,4 +1,4 @@
-package com.slambyte.core.compiler
+package io.github.sifisofakude.core.compiler
 
 import java.io.File
 import java.io.BufferedOutputStream
@@ -26,7 +26,7 @@ import org.eclipse.jdt.internal.compiler.batch.FileSystem
 
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions
 
-import com.slambyte.util.filesystem.*
+import io.github.sifisofakude.filesystem.*
 
 class JavaCompiler(
 	listener: ICompilationListener = DefaultCompilationListener()
@@ -34,10 +34,9 @@ class JavaCompiler(
 	val listener = listener
 	val fileSep = File.separator
 	
-	fun compile(options: Options)	{
+	fun compile(options: Options): Boolean	{
 		val fs = options.fs
 		val currentDir = fs.getCurrentDirectory()
-
 		
 		var bootclassError = false
 		var outputDir: String? = null
@@ -77,12 +76,15 @@ class JavaCompiler(
 		}
 
 		if(listener is DefaultCompilationListener)	{
-			listener.setPlatformFileSystem(fs)
+			listener.setFileSystem(fs)
 			listener.setOutputDirectory(outputDir!!)
 		}
 		
-		val resolvedFiles = fs.resolveFiles(options.sourceFiles,setOf("java"))
+		val resolvedFiles = fs
+			.resolveFiles(options.sourceFiles,setOf("java"))
 
+		if(resolvedFiles.isEmpty()) return true
+		
 		val compilerOptions = CompilerOptions()
 		compilerOptions.targetJDK = options.target.toJdkVersion()
 		compilerOptions.sourceLevel = options.source.toJdkVersion()
@@ -101,25 +103,27 @@ class JavaCompiler(
 			env,policy,compilerOptions,requestor,factory
 		)
 		compiler.compile(units.toTypedArray())
+
+		return listener.hasErrors()
 	}
 
 	fun sourceUnits(files: List<FileSource>): List<CompilationUnit>	{
 		val result = mutableListOf<CompilationUnit>()
 
 		files.forEach	{ fileSource ->
-			fileSource.stream?.use	{ stream ->
+			fileSource.stream.use	{ stream ->
 				val sourceCode = StringBuilder()
 				BufferedReader(InputStreamReader(stream)).use	{
 					var line: String? = it.readLine()
 					while(line != null)	{
-						sourceCode.append("${line}\n")
+						sourceCode.appendLine("${line}")
 						line = it.readLine()
 					}
 				}
 
 				result.add(
 					CompilationUnit(
-						fileName = fileSource.relativePath!!,
+						fileName = fileSource.relativePath,
 						sourceCode = sourceCode.toString()
 					)
 				)
@@ -127,71 +131,4 @@ class JavaCompiler(
 		}
 		return result
 	}
-}
-
-fun main(args: Array<String>)	{
-	var outputDir: String? = null
-	var projectPath: String? = null
-	var classpath = mutableListOf<String>()
-	val sourceFiles = mutableListOf<String>()
-	var bootClasspath = mutableListOf<String>()
-
-	for(i in 0..args.size-1)	{
-		when(args[i])	{
-			"-cp","-classpath" -> {
-				if(i+1 < args.size && !args[i+1].startsWith("-"))	{
-					classpath.add(args[i+1])
-					continue
-				}
-			}
-			
-			"-bc","-bootclasspath" -> {
-				if(i+1 < args.size && !args[i+1].startsWith("-"))	{
-					bootClasspath.add(args[i+1])
-					continue
-				}
-			}
-			
-			"-mp","-module-path" -> {
-				if(i+1 < args.size && !args[i+1].startsWith("-"))	{
-					projectPath = args[i+1]
-					continue
-				}
-			}
-
-			"-sp","-sourcepath" ->	{
-				if(i+1 < args.size && !args[i+1].startsWith("-"))	{
-					sourceFiles.add(args[i+1])
-					continue
-				}
-			}
-
-			"-d" ->	{
-				if(i+1 < args.size && !args[i+1].startsWith("-"))	{
-					outputDir = args[i+1]
-				}
-			}
-
-			else ->	{
-				if(args[i].endsWith(".java"))	{
-					sourceFiles.add("${args[i]} ")
-				}
-			}
-		}
-	}
-
-	JavaCompiler().compile(
-		Options(
-			fs = JvmFileSystem(),
-			module = projectPath,
-			outputDir = outputDir,
-			sourceFiles = sourceFiles,
-			classpath = classpath.toList(),
-			bootClasspath = bootClasspath.toList()
-		)
-	)
-
-	// val env = NameEnvironmentAnswer(units.toList())
-	
-	// println(CompilationUnit(source,"test/Hello.java").getContents().concatToString())
 }

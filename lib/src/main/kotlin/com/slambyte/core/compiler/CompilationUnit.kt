@@ -1,4 +1,4 @@
-package com.slambyte.core.compiler
+package io.github.sifisofakude.core.compiler
 
 import java.io.File
 import org.eclipse.jdt.internal.compiler.env.ICompilationUnit
@@ -20,7 +20,7 @@ class CompilationUnit(sourceCode: String, fileName: String) : ICompilationUnit  
     val tmpPackageName = mutableListOf<CharArray>()
 
     // Extract package name
-    sourceCode.lineSequence().forEach { line ->
+    for(line in sourceCode.lineSequence())	{
       if(line.startsWith("package"))  {
         tmpFullTypeName = line.replace(""";$""".toRegex(),"").replace("""package\s*""".toRegex(),"")
         
@@ -28,6 +28,7 @@ class CompilationUnit(sourceCode: String, fileName: String) : ICompilationUnit  
         tmpPackageArr.forEach {
           tmpPackageName.add(it.toCharArray())
         }
+        break
       }
     }
     fullTypeName = tmpFullTypeName
