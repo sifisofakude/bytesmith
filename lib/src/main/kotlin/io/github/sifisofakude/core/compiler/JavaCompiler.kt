@@ -28,14 +28,73 @@ import org.eclipse.jdt.internal.compiler.impl.CompilerOptions
 
 import io.github.sifisofakude.filesystem.*
 
+/**
+ * Java compiler wrapper built on top of Eclipse JDT (ECJ).
+ *
+ * This compiler provides a unified compilation pipeline that works with
+ * any [FileSystemUtil] implementation, including:
+ *
+ * - JVM filesystem (local disk)
+ * - Android SAF (content:// URIs)
+ * - Custom virtual filesystems
+ *
+ * It resolves source files, configures ECJ, compiles Java sources, and
+ * forwards results through an [ICompilationListener].
+ *
+ * ## Features
+ *
+ * - Boot classpath auto-detection (JDK 8–21)
+ * - Custom classpath support
+ * - Modular project layout support
+ * - FileSystem abstraction (JVM + Android SAF compatible)
+ * - Incremental-compatible listener callbacks
+ *
+ * ## Output behavior
+ *
+ * Compiled `.class` files are emitted through:
+ * [ICompilationListener.onClassCompiled]
+ *
+ * Compilation errors/warnings are emitted through:
+ * [ICompilationListener.onProblem]
+ *
+ * @property fs filesystem abstraction used for reading/writing sources
+ * @property listener compilation event listener (defaults to [DefaultCompilationListener])
+ */
 class JavaCompiler(
-	listener: ICompilationListener = DefaultCompilationListener()
+	private val fs: FileSystemUtil,
+	private val listener: ICompilationListener = DefaultCompilationListener(),
 )	{
-	val listener = listener
 	val fileSep = File.separator
-	
+
+	/**
+	 * Compiles Java source files using Eclipse JDT compiler.
+	 *
+	 * This method performs the full compilation pipeline:
+	 *
+	 * 1. Resolves source files using [FileSystemUtil.resolveFiles]
+	 * 2. Builds boot + user classpath
+	 * 3. Configures ECJ compiler options
+	 * 4. Converts sources into compilation units
+	 * 5. Executes ECJ compilation
+	 * 6. Sends results to [ICompilationListener]
+	 *
+	 * ## Options behavior
+	 *
+	 * - If `bootClasspath` is empty, it is auto-detected from the JVM
+	 * - If `classpath` is empty, current working directory is used
+	 * - If `outputDir` is null, current working directory is used
+	 * - If `module` is provided, overrides source directories and output layout
+	 *
+	 * ## Return value
+	 *
+	 * Returns:
+	 * - `true` if compilation finished (even with warnings)
+	 * - `false` only if early failure occurs (e.g. missing sources)
+	 *
+	 * @param options compiler configuration (source level, classpath, etc.)
+	 * @return whether compilation was executed successfully
+	 */
 	fun compile(options: Options): Boolean	{
-		val fs = options.fs
 		val currentDir = fs.getCurrentDirectory()
 		
 		var bootclassError = false
@@ -67,23 +126,12 @@ class JavaCompiler(
 			outputDir = currentDir
 		}
 
-		if(options.module != null)	{
-			outputDir = "${options.module}${fileSep}build${fileSep}classes"
-			options.sourceFiles = listOf(
-				"${options.module}${fileSep}src${fileSep}main${fileSep}java",
-				"${options.module}${fileSep}src${fileSep}main${fileSep}kotlin"
-			)
-		}
-
 		if(listener is DefaultCompilationListener)	{
 			listener.setFileSystem(fs)
 			listener.setOutputDirectory(outputDir!!)
 		}
 		
-		val resolvedFiles = fs
-			.resolveFiles(options.sourceFiles,setOf("java"))
-
-		if(resolvedFiles.isEmpty()) return true
+		if(options.javaSources.isEmpty()) return true
 		
 		val compilerOptions = CompilerOptions()
 		compilerOptions.targetJDK = options.target.toJdkVersion()
@@ -95,7 +143,7 @@ class JavaCompiler(
 		) as INameEnvironment
 		
 		val policy = ErrorHandlingPolicy()
-		val units = sourceUnits(resolvedFiles)
+		val units = sourceUnits(options.javaSources)
 		val requestor = CompilerRequestor(listener)
 		val factory = DefaultProblemFactory(Locale.getDefault())
 
@@ -104,14 +152,28 @@ class JavaCompiler(
 		)
 		compiler.compile(units.toTypedArray())
 
-		return listener.hasErrors()
+		return !listener.hasErrors()
 	}
 
+	/**
+	 * Converts resolved [FileSource] entries into ECJ compilation units.
+	 *
+	 * This method reads file contents through [FileSystemUtil.openInputStream]
+	 * and wraps them into [CompilationUnit] objects required by ECJ.
+	 *
+	 * Each unit contains:
+	 * - file path
+	 * - full source code text
+	 * - package/type metadata (parsed inside CompilationUnit)
+	 *
+	 * @param files resolved Java source files
+	 * @return list of compilation units ready for ECJ
+	 */
 	fun sourceUnits(files: List<FileSource>): List<CompilationUnit>	{
 		val result = mutableListOf<CompilationUnit>()
 
 		files.forEach	{ fileSource ->
-			fileSource.stream.use	{ stream ->
+			fs.openInputStream(fileSource.absolutePath)?.use	{ stream ->
 				val sourceCode = StringBuilder()
 				BufferedReader(InputStreamReader(stream)).use	{
 					var line: String? = it.readLine()
