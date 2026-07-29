@@ -1,4 +1,4 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 import org.eclipse.jdt.internal.compiler.ClassFile
 import org.eclipse.jdt.internal.compiler.CompilationResult
@@ -26,12 +26,12 @@ import org.eclipse.jdt.internal.compiler.ICompilerRequestor
  *
  * @param listener listener that receives compiler events
  */
-class CompilerRequestor(listener: ICompilationListener) : ICompilerRequestor   {
-  /**
-   * Listener that receives compilation events.
-   */
-  val listener = listener
+class CompilerRequestor(private val listener: ICompilationListener) : ICompilerRequestor   {
+	private var totalErrors = 0
+	private var totalWarnings = 0
 
+	var warningsAsErrors = false
+	
   /**
    * Processes a completed ECJ compilation result.
    *
@@ -50,15 +50,41 @@ class CompilerRequestor(listener: ICompilationListener) : ICompilerRequestor   {
   override fun acceptResult(result: CompilationResult)  {
     result.problems?.forEach  { problem ->
       if(problem != null) {
+      	val lineSeparatorPositions = result.lineSeparatorPositions
+        val startPosition = problem.sourceStart
+        
+        val columnNumber = if (lineSeparatorPositions != null && startPosition >= 0) {
+	        val lineNumber = problem.sourceLineNumber
+	        if (lineNumber <= 1) {
+            startPosition + 1
+	        } else {
+	          // Find the start character index of the current line
+	          val previousLineEndIndex = lineSeparatorPositions[lineNumber - 2]
+	          startPosition - previousLineEndIndex
+	        }
+        } else {
+        	-1
+        }
         listener.onProblem(
           CompilationProblem(
-            fileName = problem.originatingFileName.string(),
+            fileName = problem.originatingFileName?.let { String(it) } ?: "",
             lineNumber = problem.sourceLineNumber,
+            columnNumber = columnNumber,
             message = problem.message,
             severity = if(problem.isError())  {
+            	totalErrors ++
+            	
               "ERROR"
             }else {
-              "WARNING"
+            	if(!warningsAsErrors)	{
+	            	totalWarnings ++
+	            	
+	              "WARNING"
+              }else	{
+              	totalErrors ++
+
+              	"ERROR"
+              }
             }
           )
         )
@@ -78,4 +104,7 @@ class CompilerRequestor(listener: ICompilationListener) : ICompilerRequestor   {
       }
     }
   }
+
+  fun getTotalErrors(): Int = totalErrors
+  fun getTotalWarnings(): Int = totalWarnings
 }

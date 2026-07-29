@@ -1,4 +1,4 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.cli.common.ExitCode
@@ -103,7 +103,7 @@ class KotlinCompiler(
 			.joinToString(File.pathSeparator)
 
 		val compilerNoJdk = options.bootClasspath.isNotEmpty()
-			
+
     val args = K2JVMCompilerArguments().apply {
 	    freeArgs = kotlinSources
 	    destination = outputPath
@@ -111,6 +111,8 @@ class KotlinCompiler(
 	    noStdlib = true
 	    jdkHome = null
 	    noJdk = compilerNoJdk
+	    pluginClasspaths = options.pluginClasspath.toTypedArray()
+	    pluginOptions = options.pluginOptions.toTypedArray()
     }
     
     val compiler = K2JVMCompiler()

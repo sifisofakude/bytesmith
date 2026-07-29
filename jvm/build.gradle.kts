@@ -19,16 +19,8 @@ repositories {
 }
 
 dependencies {
-    implementation(
-      files(
-        "libs/filesystem.jar",
-        "libs/jarutil.jar"
-      )
-    )
-    
-    implementation("org.eclipse.jdt:ecj:3.43.0")
-    // Use the Kotlin Test integration.
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    implementation("io.github.sifisofakude.filesystem:filesystem-jvm:0.3.1")
+    implementation(project(":common"))
 
     // Use the JUnit 5 integration.
     testImplementation(libs.junit.jupiter.engine)

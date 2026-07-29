@@ -1,4 +1,4 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 import java.io.File
 
@@ -96,25 +96,23 @@ fun Array<CharArray>.toPath(): String {
  * @return the matching ECJ JDK constant, or `-1` if unsupported
  */
 fun String.toJdkVersion(): Long {
-  var version: Long = -1
-  
-  when(this)  {
-    "1.8" -> version = ClassFileConstants.JDK1_8
-    "9" -> version = ClassFileConstants.JDK9
-    "10" -> version = ClassFileConstants.JDK10
-    "11" -> version = ClassFileConstants.JDK11
-    "12" -> version = ClassFileConstants.JDK12
-    "13" -> version = ClassFileConstants.JDK13
-    "14" -> version = ClassFileConstants.JDK14
-    "15" -> version = ClassFileConstants.JDK15
-    "16" -> version = ClassFileConstants.JDK16
-    "17" -> version = ClassFileConstants.JDK17
-    "18" -> version = ClassFileConstants.JDK18
-    "19" -> version = ClassFileConstants.JDK19
-    "20" -> version = ClassFileConstants.JDK20
-    "21" -> version = ClassFileConstants.JDK21
+  return when(this)  {
+    "1.8" -> ClassFileConstants.JDK1_8
+    "9" -> ClassFileConstants.JDK9
+    "10" -> ClassFileConstants.JDK10
+    "11" -> ClassFileConstants.JDK11
+    "12" -> ClassFileConstants.JDK12
+    "13" -> ClassFileConstants.JDK13
+    "14" -> ClassFileConstants.JDK14
+    "15" -> ClassFileConstants.JDK15
+    "16" -> ClassFileConstants.JDK16
+    "17" -> ClassFileConstants.JDK17
+    "18" -> ClassFileConstants.JDK18
+    "19" -> ClassFileConstants.JDK19
+    "20" -> ClassFileConstants.JDK20
+    "21" -> ClassFileConstants.JDK21
+    else -> -1L
   }
-  return version
 }
 
 /**
@@ -166,6 +164,7 @@ fun getBootClasspath(): List<String>  {
 data class CompilationProblem(
   val fileName: String,
   val lineNumber: Int,
+  val columnNumber: Int,
   val message: String?,
   val severity: String
 ) {
@@ -182,7 +181,7 @@ data class CompilationProblem(
   	val fileIndicator = if(fileName.isEmpty())	{
   		""
   	}else	{
-  		"$fileName:$lineNumber:"
+  		"$fileName:$lineNumber:$columnNumber:"
   	}
     println("[$severity]:$fileIndicator$message")
   }
@@ -200,6 +199,10 @@ data class CompilationProblem(
 data class CompiledClass(
   val fileName: String,
   val bytes: ByteArray
+)
+
+data class CompilationResult(
+	val success: Boolean
 )
 
 /**
@@ -238,5 +241,7 @@ data class Options(
   val kotlinSources: List<FileSource> = emptyList(),
   val javaSources: List<FileSource> = emptyList(),
   val classpath: List<String>,
-  val bootClasspath: List<String>
+  val bootClasspath: List<String>,
+  val pluginClasspath: List<String> = emptyList(),
+  val pluginOptions: List<String> = emptyList()
 )

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://apache.org"
+         xmlns:xsi="http://w3.org"
+         xsi:schemaLocation="http://apache.org http://apache.org">
+    <modelVersion>4.0.0</modelVersion>
+
+    <name>ByteSmith</name>
+
+    <description>
+        ArchiveUtil is a lightweight Java and Kotlin library for creating, updating, and extracting JAR, ZIP, AAR, WAR, and EAR archives through a simple, platform-independent API.
+    </description>
+    
+    <groupId>io.github.sifisofakude.bytesmith</groupId>
+    <artifactId>bytesmith-common</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0</version>
+    
+    <dependencies>
+        <!-- Module dependencies go here -->
+        <dependency>
+        	<groupId>org.eclipse.jdt</groupId>
+        	<artifactId>ecj</artifactId>
+        	<version>3.43.0</version>
+        </dependency>
+        
+        <dependency>
+            <group>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-embaddable-compiler</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+    </dependencies>
+    
+    <url>https://github.com/sifisofakude/bytesmith</url>
+
+    <licenses>
+        <license>
+            <name>The MIT License</name>
+            <url>http://opensource.org/licenses/mit</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Sifiso Fakude</name>
+            <email>sifisofakude404@gmail.com</email>
+            <organization>Sifiso Fakude</organization>
+            <organizationUrl>https://github.com/sifisofakude/bytesmith</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://://github.com/sifisofakude/bytesmith.git</connection>
+        <developerConnection>scm:git:ssh://github.com:sifisofakude/bytesmith.git</developerConnection>
+        <url>https://github.com/sifisofakude/bytesmith.git</url>
+    </scm>
+</project>

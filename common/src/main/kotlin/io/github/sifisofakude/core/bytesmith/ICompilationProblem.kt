@@ -1,4 +1,4 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 /**
  * Listener interface for receiving compilation events.

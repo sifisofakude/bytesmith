@@ -1,4 +1,4 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 import java.io.File
 import org.eclipse.jdt.internal.compiler.env.ICompilationUnit

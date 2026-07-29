@@ -1,8 +1,7 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 import io.github.sifisofakude.filesystem.*
-import io.github.sifisofakude.core.compiler.*
-import io.github.sifisofakude.util.jar.JarUtil
+import io.github.sifisofakude.util.archive.ArchiveUtil
 
 import org.jetbrains.kotlin.cli.common.ExitCode
 
@@ -123,6 +122,8 @@ class Main	{
 		var classpath = mutableListOf<String>()
 		val sourceFiles = mutableListOf<String>()
 		var bootClasspath = mutableListOf<String>()
+		var pluginClasspath = mutableListOf<String>()
+		var pluginOptions = mutableListOf<String>()
 
 		val platformDetector = PlatformDetector()
 	
@@ -157,6 +158,20 @@ class Main	{
 					}
 				}
 	
+				"-pl","-plugins" ->	{
+					if(i+1 < args.size && !args[i+1].startsWith("-"))	{
+						pluginClasspath.addAll(args[i+1].split(File.pathSeparator))
+						i ++
+					}
+				}
+	
+				"-po","-plugin-options" ->	{
+					if(i+1 < args.size && !args[i+1].startsWith("-"))	{
+						pluginOptions.addAll(args[i+1].split(','))
+						i ++
+					}
+				}
+	
 				"-d" ->	{
 					if(i+1 < args.size && !args[i+1].startsWith("-"))	{
 						outputDir = args[i+1]
@@ -166,7 +181,11 @@ class Main	{
 	
 				else ->	{
 					if(args[i].endsWith(".java") || args[i].endsWith(".kt"))	{
-						sourceFiles.add("${args[i]}")
+						sourceFiles.add(args[i])
+					}
+
+					if(fs.isDirectory(args[i]))	{
+						sourceFiles.add(args[i])
 					}
 				}
 			}
@@ -229,11 +248,17 @@ class Main	{
 				.map { fs.materialize(it,"Bootclasspath") }
 				.toMutableList()
 
+			pluginClasspath = pluginClasspath
+				.map { fs.materialize(it,"Plugins") }
+				.toMutableList()
+
 			sources = sources.map { fs.materialize(it,"Sources") }
 		}
 
 		val resolvedSources = fs.resolveFiles(sources,setOf("kt","java"))
-			
+		val resolvedPlugins = fs.resolveFiles(pluginClasspath,setOf("jar"))
+			.map { fs.resolvePath(it.absolutePath) }
+
 		val kotlinSources = resolvedSources.filter { it.relativePath.endsWith(".kt") }
 		val javaSources = resolvedSources.filter { it.relativePath.endsWith(".java") }
 
@@ -242,7 +267,9 @@ class Main	{
 			kotlinSources = kotlinSources,
 			javaSources = javaSources,
 			classpath = classpath.toList(),
-			bootClasspath = bootClasspath.toList()
+			bootClasspath = bootClasspath.toList(),
+			pluginClasspath = resolvedPlugins,
+			pluginOptions = pluginOptions
 		)
 
 			
@@ -269,18 +296,19 @@ class Main	{
 			val archiveExtensions = setOf("zip","jar")
 
 			if(ext.isNotEmpty() && ext in archiveExtensions)	{
-				val jarUtil = JarUtil(fs)
+				val archiveUtil = ArchiveUtil(fs)
 
-				val files = fs.resolveFiles(listOf(javaOutput),setOf("class"))
-				if(fs.exists(outputDir))	{
-					jarUtil.addFiles(
+				val files = listOf(javaOutput)
+				if(fs.exists(outputDir) && kotlinSources.isNotEmpty())	{
+					archiveUtil.updateArchive(
 						jarFile = outputDir,
 						files = files
 					)
 				}else	{
-					jarUtil.createJar(
+					archiveUtil.createArchive(
 						output = outputDir,
-						files = files
+						files = files,
+						autoManifest = true
 					)
 				}
 			}else if(fs.isDirectory(outputDir))	{
@@ -319,6 +347,6 @@ fun main(args: Array<String>)	{
 	if(args.isEmpty()) return
 	
 	val fs = JvmFileSystem()
-	
+
 	Main().compile(fs,args.toList())
 }

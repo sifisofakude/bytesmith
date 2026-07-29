@@ -1,4 +1,4 @@
-package io.github.sifisofakude.core.compiler
+package io.github.sifisofakude.core.bytesmith
 
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
@@ -20,10 +20,14 @@ import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
  * @property listener recipient of compiler diagnostics
  */
 class KotlinCompilerRequestor(
-	private val listener: ICompilationListener
+	private val listener: ICompilationListener,
 ) : MessageCollector {
 
     private var hasError = false 
+    private var totalErrors = 0
+    private var totalWarnings = 0
+    
+		var warningsAsErrors: Boolean = false
 
 		/**
 		 * Receives a compiler message from the Kotlin compiler.
@@ -42,12 +46,12 @@ class KotlinCompilerRequestor(
 		 * @param location optional source location associated with the message
 		 */
     override fun report(
-        severity: CompilerMessageSeverity,
-        message: String,
-        location: CompilerMessageSourceLocation?
+	    severity: CompilerMessageSeverity,
+	    message: String,
+	    location: CompilerMessageSourceLocation?
     ) {
 
-    	if(severity.isError)	{
+    	if(severity.isError || (severity.isWarning && warningsAsErrors))	{
     		hasError = true
     	}
 
@@ -56,11 +60,22 @@ class KotlinCompilerRequestor(
     			CompilationProblem(
     				fileName = location?.path ?: "",
     				lineNumber = location?.line ?: -1,
+    				columnNumber = location?.column ?: -1,
     				message = message,
     				severity = if(severity.isError)	{
+    					totalErrors ++
+    					
     					"ERROR"
     				}else	{
-    					"WARNING"
+    					if(warningsAsErrors)	{
+    						totalErrors ++
+    						
+    						"ERROR"
+    					}else	{
+    						totalWarnings ++
+    						
+    						"WARNING"
+    					}
     				}
     			)
     		)
@@ -83,6 +98,9 @@ class KotlinCompilerRequestor(
     * session begins, allowing the collector to be reused safely.
     */
    override fun clear()	{
-   	hasError = false
+ 			hasError = false
    }
+
+   fun getTotalErrors(): Int = totalErrors
+   fun getTotalWarnings(): Int = totalWarnings
 }

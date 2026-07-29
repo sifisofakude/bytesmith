@@ -1,4 +1,4 @@
-# Core Compiler
+# ByteSmith
 
 A lightweight Kotlin and Java compiler toolkit designed for JVM and Android environments.
 
@@ -26,15 +26,15 @@ The library provides a unified API for compiling Kotlin and Java sources, handli
 Maven
 
 <dependency>
-    <groupId>io.github.sifisofakude.core</groupId>
-    <artifactId>compiler</artifactId>
-    <version>VERSION</version>
+    <groupId>io.github.sifisofakude.bytesmith</groupId>
+    <artifactId>bytesmith</artifactId>
+    <version>1.0.0</version>
 </dependency>
 
 Gradle Kotlin DSL
 
 ```kotlin
-implementation("io.github.sifisofakude.core:compiler:VERSION")
+implementation("io.github.sifisofakude.bytesmith:bytesmith:1.0.0")
 ```
 
 ---
@@ -108,7 +108,7 @@ val success = compiler.compile(
 
 **Example:**
 ```text
-compiler \
+bytesmith \
     -cp libs/* \
     -d build/classes \
     src/main/java \
@@ -127,7 +127,7 @@ When a module path is supplied, sources are automatically resolved from:
 
 **Example:**
 ```bash
-compiler -mp app
+bytesmith -mp app
 ```
 
 Equivalent to:
