@@ -88,7 +88,7 @@ open class DefaultCompilationListener : ICompilationListener  {
    * @param problem reported compilation problem
    */
   override fun onProblem(problem: CompilationProblem) {
-  	if(problem.severity == "ERROR")	{
+  	if(problem.severity == Severity.ERROR)	{
   		hasError = true
   	}
     problem.printMessage()

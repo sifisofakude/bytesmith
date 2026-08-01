@@ -98,7 +98,7 @@ fun Array<CharArray>.toPath(): String {
 fun String.toJdkVersion(): Long {
   return when(this)  {
     "1.8" -> ClassFileConstants.JDK1_8
-    "9" -> ClassFileConstants.JDK9
+    "1.9","9" -> ClassFileConstants.JDK9
     "10" -> ClassFileConstants.JDK10
     "11" -> ClassFileConstants.JDK11
     "12" -> ClassFileConstants.JDK12
@@ -111,6 +111,11 @@ fun String.toJdkVersion(): Long {
     "19" -> ClassFileConstants.JDK19
     "20" -> ClassFileConstants.JDK20
     "21" -> ClassFileConstants.JDK21
+    // "22" -> ClassFileConstants.JDK22
+    // "23" -> ClassFileConstants.JDK23
+    // "24" -> ClassFileConstants.JDK24
+    // "25" -> ClassFileConstants.JDK25
+    // "26" -> ClassFileConstants.JDK26
     else -> -1L
   }
 }
@@ -166,7 +171,7 @@ data class CompilationProblem(
   val lineNumber: Int,
   val columnNumber: Int,
   val message: String?,
-  val severity: String
+  val severity: Severity
 ) {
 	/**
 	 * Prints the problem in a compiler-style format.
@@ -183,7 +188,10 @@ data class CompilationProblem(
   	}else	{
   		"$fileName:$lineNumber:$columnNumber:"
   	}
-    println("[$severity]:$fileIndicator$message")
+
+  	val stringSeverity = if(severity == Severity.ERROR)	"ERROR" else "WARNING"
+  	
+    println("[$stringSeverity]:$fileIndicator$message")
   }
 }
 
@@ -201,8 +209,12 @@ data class CompiledClass(
   val bytes: ByteArray
 )
 
-data class CompilationResult(
-	val success: Boolean
+data class CompilerResult(
+	val success: Boolean,
+	val errorCount: Int = 0,
+	val warningCount: Int = 0,
+	val compiledClassCount: Int = 0,
+	val elapseTimeMillis: Long = -1L
 )
 
 /**
@@ -238,6 +250,7 @@ data class Options(
   val target: String = "17",
   val module: String? = null,
   val outputDir: String? = null,
+  val warningsAsErrors: Boolean,
   val kotlinSources: List<FileSource> = emptyList(),
   val javaSources: List<FileSource> = emptyList(),
   val classpath: List<String>,
@@ -245,3 +258,7 @@ data class Options(
   val pluginClasspath: List<String> = emptyList(),
   val pluginOptions: List<String> = emptyList()
 )
+
+enum class Severity	{
+	ERROR,WARNING
+}

@@ -116,7 +116,7 @@ class Main	{
 	fun compile(
 		fs: FileSystemUtil,
 		args: List<String>
-	): Boolean	{
+	): CompilerResult	{
 		var outputDir: String? = null
 		var projectPath: String? = null
 		var classpath = mutableListOf<String>()
@@ -126,6 +126,8 @@ class Main	{
 		var pluginOptions = mutableListOf<String>()
 
 		val platformDetector = PlatformDetector()
+
+		var warningsAsErrors = false
 	
 		var i = 0
 		while(i < args.size)	{
@@ -177,6 +179,10 @@ class Main	{
 						outputDir = args[i+1]
 						i ++
 					}
+				}
+	
+				"-wErr" ->	{
+					warningsAsErrors = true
 				}
 	
 				else ->	{
@@ -269,20 +275,21 @@ class Main	{
 			classpath = classpath.toList(),
 			bootClasspath = bootClasspath.toList(),
 			pluginClasspath = resolvedPlugins,
-			pluginOptions = pluginOptions
+			pluginOptions = pluginOptions,
+			warningsAsErrors = warningsAsErrors
 		)
 
 			
 		fs.createDirectory(javaOutput)
 
-		val ktExitCode = KotlinCompiler(fs).compile(options)
+		val ktResult = KotlinCompiler(fs).compile(options)
 
 		val javaCp = classpath.toMutableList()
 		if(fs.exists(kotlinOutput!!))	{
 			javaCp.add(kotlinOutput)
 		}
 
-		val jvExitCode = JavaCompiler(fs).compile(
+		val jvResult = JavaCompiler(fs).compile(
 			options.copy(
 				outputDir = javaOutput,
 				classpath = javaCp
@@ -332,14 +339,16 @@ class Main	{
 			fs.clearMaterialized("Bootclasspath")
 			fs.clearMaterialized("Sources")
 			fs.clearMaterialized("javaCompilerOutput")
+			fs.clearMaterialized("Plugins")
 		}else	{
 			fs.delete(javaOutput)
 		}
 
-		if(ktExitCode == ExitCode.OK && jvExitCode)	{
-			return true
-		}
-		return false
+		return CompilerResult(
+			success = jvResult.success && ktResult.success,
+			errorCount = jvResult.errorCount + ktResult.errorCount,
+			warningCount = jvResult.warningCount + ktResult.warningCount
+		)
 	}
 }
 

@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.eclipse.jdt:ecj:3.43.0")
+    implementation("org.eclipse.jdt:ecj:3.46.0")
     implementation("org.jetbrains.kotlin:kotlin-embeddable-compiler:2.4.0")
     // Use the Kotlin Test integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test")

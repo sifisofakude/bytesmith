@@ -1,37 +1,58 @@
 # ByteSmith
 
-A lightweight Kotlin and Java compiler toolkit designed for JVM and Android environments.
+A lightweight Kotlin and Java compiler toolkit for JVM and Android.
 
-The library provides a unified API for compiling Kotlin and Java sources, handling classpaths, boot classpaths, source discovery, and output packaging while remaining independent of Gradle or Maven build systems.
-
-## Features
-
-- Compile Kotlin source files
-- Compile Java source files
-- Mixed Kotlin/Java projects
-- JVM support
-- Android support
-- Storage Access Framework (SAF) support
-- Recursive source discovery
-- Custom classpaths
-- Custom boot classpaths
-- JAR and ZIP packaging
-- Pluggable filesystem abstraction
-- Compilation diagnostics and reporting
+ByteSmith provides a unified API for compiling Kotlin, Java, and mixed-language projects without requiring Gradle, Maven, or any other build system. It handles source discovery, classpaths, boot classpaths, compilation diagnostics, packaging, and Android Storage Access Framework (SAF) support through a pluggable filesystem abstraction.
 
 ---
 
-## Installation
+# Features
 
-Maven
+### Compilation
 
+- Compile Kotlin source files
+- Compile Java source files
+- Mixed Kotlin/Java compilation
+- Recursive source discovery
+- Compilation diagnostics
+- Warnings as errors
+
+### Build
+
+- Custom classpaths
+- Custom boot classpaths
+- Module layout support
+- JAR packaging
+- ZIP packaging
+
+### Platform Support
+
+- JVM
+- Android
+- Android Storage Access Framework (SAF)
+
+### Architecture
+
+- Pluggable filesystem abstraction
+- Independent of Gradle and Maven
+- Embeddable as a library
+- Command-line interface
+
+---
+
+# Installation
+
+## Maven
+
+```xml
 <dependency>
     <groupId>io.github.sifisofakude.bytesmith</groupId>
     <artifactId>bytesmith</artifactId>
     <version>1.0.0</version>
 </dependency>
+```
 
-Gradle Kotlin DSL
+## Gradle Kotlin DSL
 
 ```kotlin
 implementation("io.github.sifisofakude.bytesmith:bytesmith:1.0.0")
@@ -39,74 +60,75 @@ implementation("io.github.sifisofakude.bytesmith:bytesmith:1.0.0")
 
 ---
 
-## Quick Start
-
-**Compile Sources**
+# Quick Start
 
 ```kotlin
-val fs = JvmFileSystem()
-
-val success = Main().compile(
-    fs,
+val result = Main().compile(
+    JvmFileSystem(),
     listOf(
         "-d", "build/classes",
         "src/main/java",
         "src/main/kotlin"
     )
 )
+
+println(result.success)
+println(result.errorCount)
+println(result.warningCount)
 ```
 
 ---
 
-### Kotlin Compiler
+# Java Compiler
 
-Compile Kotlin source files directly.
 ```kotlin
-val compiler = KotlinCompiler(fs)
+val compiler = JavaCompiler(JvmFileSystem())
+
+val result = compiler.compile(
+    Options(
+        outputDir = "build/classes",
+        javaSources = javaSources
+    )
+)
+
+println(result.success)
+```
+
+---
+
+# Kotlin Compiler
+
+```kotlin
+val compiler = KotlinCompiler(JvmFileSystem())
 
 val result = compiler.compile(
     Options(
         outputDir = "build/classes",
         kotlinSources = kotlinSources,
-        javaSources = javaSources,
-        classpath = emptyList(),
-        bootClasspath = emptyList()
+        javaSources = javaSources
     )
 )
+
+println(result.success)
 ```
 
 ---
 
-### Java Compiler
+# Command Line Options
 
-Compile Java source files directly.
-```kotlin
-val compiler = JavaCompiler(fs)
+| Option | Description |
+|---------|-------------|
+| `-cp`, `-classpath` | Compilation classpath |
+| `-bc`, `-bootclasspath` | Boot classpath |
+| `-mp`, `-module-path` | Module path |
+| `-sp`, `-sourcepath` | Source path |
+| `-d` | Output directory or archive |
+| `-pl`, `-plugins` | Kotlin compiler plugin classpath |
+| `-po`, `-plugin-options` | Kotlin compiler plugin options |
+| `-wErr` | Treat warnings as errors |
 
-val success = compiler.compile(
-    Options(
-        outputDir = "build/classes",
-        kotlinSources = emptyList(),
-        javaSources = javaSources,
-        classpath = emptyList(),
-        bootClasspath = emptyList()
-    )
-)
-```
+Example:
 
----
-
-### Command Line Options
-
-|Option| Description|
-|-|-|
-|`-cp` `-classpath`| Classpath |
-|`-bc` `-bootclasspath`| Boot classpath |
-|`-mp` `-module-path`| Module path |
-|`-sp` `-sourcepath`| Source path |
-|`-d`| Output directory or archive |
-
-**Example:**
 ```text
 bytesmith \
     -cp libs/* \
@@ -117,103 +139,121 @@ bytesmith \
 
 ---
 
-### Module Layout Support
+# Module Layout
 
-When a module path is supplied, sources are automatically resolved from:
+When a module path is supplied, ByteSmith automatically searches:
+
 ```text
-<module>/src/main/java
-<module>/src/main/kotlin
-```
-
-**Example:**
-```bash
-bytesmith -mp app
-```
-
-Equivalent to:
-```text
-app/
+<module>/
 └── src
     └── main
         ├── java
         └── kotlin
 ```
+
+Example:
+
+```text
+bytesmith -mp app
+```
+
 ---
 
-### Filesystem Support
+# Kotlin Compiler Plugins
 
-The compiler uses the "FileSystemUtil" abstraction and can operate on:
+ByteSmith forwards Kotlin compiler plugins directly to the Kotlin compiler.
 
-**JVM Files**
+Example:
+
+```text
+bytesmith \
+    -pl plugins/serialization-plugin.jar \
+    -po plugin:org.jetbrains.kotlin.serialization:enabled=true
+```
+
+Plugin classpaths and options are also available through `Options`:
+
+```kotlin
+Options(
+    pluginClasspath = listOf("plugins/my-plugin.jar"),
+    pluginOptions = listOf(
+        "plugin:my.plugin:key=value"
+    )
+)
+```
+
+---
+
+# Filesystem Support
+
+ByteSmith operates through the `FileSystemUtil` abstraction.
+
+JVM:
+
 ```kotlin
 val fs = JvmFileSystem()
 ```
 
-**Android SAF**
+Android:
+
 ```kotlin
 val fs = AndroidSafFileSystem(context)
 ```
 
-Supported SAF inputs include:
-
-`content://...`
-
-for:
+Supported SAF resources include:
 
 - Sources
 - Classpaths
 - Boot classpaths
+- Plugin JARs
 - Output archives
 
 ---
 
-### Android Support
+# Android Support
 
-Android's compiler tooling expects traditional filesystem paths.
+The Android Storage Access Framework does not expose traditional filesystem paths.
 
-To support SAF resources, the compiler automatically materializes files into temporary storage before compilation.
+ByteSmith automatically materializes SAF resources into temporary application storage before compilation and removes them when compilation finishes.
 
 Example:
+
 ```kotlin
 fs.materialize(uri, "Sources")
 ```
-Temporary resources are automatically removed after compilation.
+
+Cleanup:
+
 ```kotlin
 fs.clearMaterialized("Sources")
 ```
-**Performance Recommendation**
 
-For large projects, dependency caches, boot classpaths, and compiler outputs, prefer application-specific external storage:
+## Performance
 
-`/Android/data/<package>/files`
+For large projects, application-specific external storage is recommended:
+
+```text
+/Android/data/<package>/files
+```
 
 instead of:
 
-`content://...`
+```text
+content://...
+```
 
-Using application-specific storage avoids:
-
-- SAF traversal
-- URI resolution overhead
-- Temporary materialization
-- Additional file copying
-
-This can significantly improve compilation performance for large projects.
-
-SAF remains fully supported when users need access to arbitrary files selected through the Android Storage Access Framework.
+This avoids repeated SAF traversal and significantly improves compilation performance.
 
 ---
 
-### Compilation Diagnostics
+# Compilation Diagnostics
 
 Implement your own listener:
 
 ```kotlin
 class MyListener : ICompilationListener {
 
-    override fun hasErrors(): Boolean {
-        return false
-    }
+    override fun hasErrors(): Boolean = false
 
     override fun onProblem(problem: CompilationProblem) {
         println(problem.message)
@@ -226,59 +266,66 @@ class MyListener : ICompilationListener {
 ```
 
 Usage:
+
 ```kotlin
 val compiler = JavaCompiler(
-    fs,
+    JvmFileSystem(),
     MyListener()
 )
 ```
 
 ---
 
-### Packaging
+# Packaging
 
-The compiler can output:
+Output may be one of:
 
-**Directory**
+Directory
 
-`build/classes`
+```text
+build/classes
+```
 
-**JAR**
+JAR
 
-`app.jar`
+```text
+app.jar
+```
 
-**ZIP**
+ZIP
 
-`app.zip`
+```text
+app.zip
+```
 
-When a JAR or ZIP is supplied as the output destination, compiled classes are automatically packaged using JarUtil.
-
----
-
-### Supported Source Types
-
-`.kt`
-`.java`
-
-Kotlin compilation receives both Kotlin and Java sources so that Java symbols can be resolved during analysis.
-
-Java compilation processes Java sources and can reference classes produced during Kotlin compilation.
+When a JAR or ZIP is specified, ByteSmith packages compiled classes automatically using `ArchiveUtil`.
 
 ---
 
-## Requirements
+# Mixed Kotlin and Java
 
-**JVM**
+ByteSmith compiles mixed-language projects in two stages:
 
-- Java 8+
+1. Kotlin sources are compiled first.
+2. Java sources are compiled using the generated Kotlin classes on the classpath.
 
-**Android**
+This allows Java and Kotlin sources to reference one another naturally.
 
-- Android Storage Access Framework support
+---
+
+# Requirements
+
+## JVM
+
+- Java 8 or later
+
+## Android
+
+- Storage Access Framework support
 - Read/write permissions granted by the selected document provider
 
 ---
 
-## License
+# License
 
 MIT License

@@ -65,16 +65,16 @@ class KotlinCompilerRequestor(
     				severity = if(severity.isError)	{
     					totalErrors ++
     					
-    					"ERROR"
+    					Severity.ERROR
     				}else	{
     					if(warningsAsErrors)	{
     						totalErrors ++
     						
-    						"ERROR"
+    						Severity.ERROR
     					}else	{
     						totalWarnings ++
     						
-    						"WARNING"
+    						Severity.WARNING
     					}
     				}
     			)

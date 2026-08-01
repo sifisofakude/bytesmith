@@ -80,7 +80,7 @@ class KotlinCompiler(
 	 * @param options compiler configuration
 	 * @return compiler exit status returned by the Kotlin compiler
 	 */
-	fun compile(options: Options): ExitCode {
+	fun compile(options: Options): CompilerResult {
 		val outputPath = options.outputDir ?: fs.getCurrentDirectory()
 		
 		val kotlinSources = listOf(
@@ -91,7 +91,7 @@ class KotlinCompiler(
 
 		val sourceTest = kotlinSources.filter { it.endsWith(".kt") }
 
-		if(sourceTest.isEmpty()) return ExitCode.OK
+		if(sourceTest.isEmpty()) return CompilerResult(success = true)
 
 		val compilerClasspath = listOf(
 			*options.classpath.toTypedArray(),
@@ -117,7 +117,14 @@ class KotlinCompiler(
     
     val compiler = K2JVMCompiler()
     val collector = KotlinCompilerRequestor(listener)
+    collector.warningsAsErrors = options.warningsAsErrors
     
-    return compiler.exec(collector, org.jetbrains.kotlin.config.Services.EMPTY, args)
+    val exitCode = compiler.exec(collector, org.jetbrains.kotlin.config.Services.EMPTY, args)
+
+    return CompilerResult(
+    	success = exitCode == ExitCode.OK,
+    	errorCount = collector.getTotalErrors(),
+    	warningCount = collector.getTotalWarnings()
+    )
 	}
 }

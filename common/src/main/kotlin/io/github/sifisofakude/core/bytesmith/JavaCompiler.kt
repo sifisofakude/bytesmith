@@ -28,6 +28,8 @@ import org.eclipse.jdt.internal.compiler.impl.CompilerOptions
 
 import io.github.sifisofakude.filesystem.*
 
+class EmptyBootClasspathException : Exception("No boot classpath found")
+
 /**
  * Java compiler wrapper built on top of Eclipse JDT (ECJ).
  *
@@ -64,8 +66,8 @@ class JavaCompiler(
 	private val fs: FileSystemUtil,
 	private val listener: ICompilationListener = DefaultCompilationListener(),
 )	{
-	val fileSep = File.separator
-
+	private val platformDetector = PlatformDetector()
+	
 	/**
 	 * Compiles Java source files using Eclipse JDT compiler.
 	 *
@@ -94,11 +96,9 @@ class JavaCompiler(
 	 * @param options compiler configuration (source level, classpath, etc.)
 	 * @return whether compilation was executed successfully
 	 */
-	fun compile(options: Options): Boolean	{
+	fun compile(options: Options): CompilerResult	{
 		val currentDir = fs.getCurrentDirectory()
-		
-		var bootclassError = false
-		var outputDir: String? = null
+		val outputDir = options.outputDir ?: currentDir
 		
 		val classpaths = mutableListOf<String>()
 		if(options.bootClasspath.size > 0)	{
@@ -107,8 +107,8 @@ class JavaCompiler(
 			val bootClasspath = getBootClasspath()
 			classpaths.addAll(bootClasspath)
 			
-			if(bootClasspath.isEmpty())	{
-				bootclassError = true
+			if(bootClasspath.isEmpty() && platformDetector.isAndroid())	{
+				throw EmptyBootClasspathException()
 			}
 		}
 
@@ -120,18 +120,15 @@ class JavaCompiler(
 			}
 		}
 
-		if(options.outputDir != null)	{
-			outputDir = options.outputDir
-		}else	{
-			outputDir = currentDir
-		}
 
 		if(listener is DefaultCompilationListener)	{
 			listener.setFileSystem(fs)
-			listener.setOutputDirectory(outputDir!!)
+			outputDir?.let	{
+				listener.setOutputDirectory(it)
+			}
 		}
 		
-		if(options.javaSources.isEmpty()) return true
+		if(options.javaSources.isEmpty()) return CompilerResult(success = true)
 		
 		val compilerOptions = CompilerOptions()
 		compilerOptions.targetJDK = options.target.toJdkVersion()
@@ -139,20 +136,31 @@ class JavaCompiler(
 		compilerOptions.complianceLevel = options.source.toJdkVersion()
 
 		val env = FileSystem(
-			classpaths.toTypedArray(),arrayOf<String>(),"UTF-8"
-		) as INameEnvironment
+			classpaths.toTypedArray(),arrayOf<String>(),StandardCharsets.UTF_8.name()
+		)
 		
 		val policy = ErrorHandlingPolicy()
 		val units = sourceUnits(options.javaSources)
 		val requestor = CompilerRequestor(listener)
 		val factory = DefaultProblemFactory(Locale.getDefault())
 
+		requestor.warningsAsErrors = options.warningsAsErrors
+
 		val compiler = Compiler(
 			env,policy,compilerOptions,requestor,factory
 		)
-		compiler.compile(units.toTypedArray())
 
-		return !listener.hasErrors()
+		try	{
+			compiler.compile(units.toTypedArray())
+		}finally	{
+			env.cleanup()
+		}
+
+		return CompilerResult(
+			success = requestor.getTotalErrors() == 0,
+			errorCount = requestor.getTotalErrors(),
+			warningCount = requestor.getTotalWarnings()
+		)
 	}
 
 	/**
@@ -174,19 +182,22 @@ class JavaCompiler(
 
 		files.forEach	{ fileSource ->
 			fs.openInputStream(fileSource.absolutePath)?.use	{ stream ->
-				val sourceCode = StringBuilder()
-				BufferedReader(InputStreamReader(stream)).use	{
-					var line: String? = it.readLine()
-					while(line != null)	{
-						sourceCode.appendLine("${line}")
-						line = it.readLine()
-					}
+				val sourceCode = buildString {
+			    BufferedReader(
+		        InputStreamReader(stream, StandardCharsets.UTF_8)
+			    ).use { reader ->
+		        var line = reader.readLine()
+		        while (line != null) {
+	            appendLine(line)
+	            line = reader.readLine()
+		        }
+			    }
 				}
 
 				result.add(
 					CompilationUnit(
 						fileName = fileSource.relativePath,
-						sourceCode = sourceCode.toString()
+						sourceCode = sourceCode
 					)
 				)
 			}

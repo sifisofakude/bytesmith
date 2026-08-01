@@ -74,16 +74,16 @@ class CompilerRequestor(private val listener: ICompilationListener) : ICompilerR
             severity = if(problem.isError())  {
             	totalErrors ++
             	
-              "ERROR"
+              Severity.ERROR
             }else {
             	if(!warningsAsErrors)	{
 	            	totalWarnings ++
-	            	
-	              "WARNING"
+
+	            	Severity.WARNING
               }else	{
               	totalErrors ++
 
-              	"ERROR"
+              	Severity.ERROR
               }
             }
           )
