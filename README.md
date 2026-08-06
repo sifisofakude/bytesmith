@@ -11,14 +11,10 @@ compiler plugins, packaging, and Android Storage Access Framework (SAF).
 
 ------------------------------------------------------------------------
 
-## Badges
-
-``` md
 ![Maven Central](https://img.shields.io/maven-central/v/io.github.sifisofakude.bytesmith/bytesmith-common)
 ![Java](https://img.shields.io/badge/Java-8--26-blue)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF)
 ![License](https://img.shields.io/badge/License-MIT-green)
-```
 
 ## Features
 
