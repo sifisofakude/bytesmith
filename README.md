@@ -47,7 +47,7 @@ compiler plugins, packaging, and Android Storage Access Framework (SAF).
 ### Gradle
 
 ``` kotlin
-implementation("io.github.sifisofakude.bytesmith:bytesmith:1.0.100")
+implementation("io.github.sifisofakude.bytesmith:bytesmith:1.0.1")
 ```
 
 ## Quick Start
