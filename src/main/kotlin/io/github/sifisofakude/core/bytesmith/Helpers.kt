@@ -2,7 +2,6 @@ package io.github.sifisofakude.core.bytesmith
 
 import java.io.File
 
-
 import org.eclipse.jdt.internal.compiler.IErrorHandlingPolicy
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants
 
@@ -73,9 +72,9 @@ fun Array<CharArray>.toPackageName(): String  {
 fun Array<CharArray>.toPath(): String {
   val result = StringBuilder()
   this.forEach  {
-    result.append("${it.string()}/")
+    result.append("${it.string()}${File.separator}")
   }
-  return result.trim('/').toString()
+  return result.removeSuffix(File.separator).toString()
 }
 
 /**
@@ -139,20 +138,25 @@ fun getBootClasspath(): List<String>  {
   val bootClasses = mutableListOf<String>()
 
   if(javaHome != null)  {
-    File(javaHome).listFiles()?.forEach {
+    FileOperation(javaHome).listFiles().forEach {
       if(it.absolutePath == "$javaHome/jmods")  {
-        it.listFiles()?.forEach { path ->
+        it.listFiles().forEach { path ->
           bootClasses.add(path.absolutePath)
         }
       }
     }
 
     if(bootClasses.isEmpty()) {
-      val rt = File("$javaHome/lib/rt.jar")
+      val rt = FileOperation("$javaHome/lib/rt.jar")
       if(rt.exists()) bootClasses.add(rt.absolutePath)
     }
   }
   return bootClasses.toList()
+}
+
+interface AndroidMaterializer	{
+	fun materialize(info: SourcesInfo)
+	fun clearMaterialized(info: SourcesInfo)
 }
 
 /**
@@ -227,11 +231,25 @@ data class CompilerResult(
  * workflows where collecting all diagnostics is preferred over failing
  * immediately.
  */
-class ErrorHandlingPolicy : IErrorHandlingPolicy  {
-  override fun proceedOnErrors(): Boolean = true
-  override fun stopOnFirstError(): Boolean = false
-  override fun ignoreAllErrors(): Boolean = false
+class ErrorHandlingPolicy(
+	private val proceedOnError: Boolean = true,
+	private val stopOnError: Boolean = false,
+	private val ignoreErrors: Boolean = false
+) : IErrorHandlingPolicy  {
+  override fun proceedOnErrors(): Boolean = proceedOnError
+  override fun stopOnFirstError(): Boolean = stopOnError
+  override fun ignoreAllErrors(): Boolean = ignoreErrors
 }
+
+class SourcesInfo(
+	var sources: List<String>,
+	var javaOutput: String,
+	var kotlinOutput: String,
+	var classpath: List<String>,
+	var bootClasspath: List<String>,
+	var pluginClasspath: List<String>,
+	var resFolder: String? = null
+)
 
 /**
  * Compilation configuration shared by the Kotlin and Java compilers.
@@ -246,17 +264,20 @@ class ErrorHandlingPolicy : IErrorHandlingPolicy  {
  * @property bootClasspath runtime and platform classes used during compilation
  */
 data class Options(
-  val source: String = "26",
-  val target: String = "26",
+  val source: String = "21",
+  val target: String = "21",
   val module: String? = null,
   val outputDir: String? = null,
+  val multiplatform: Boolean,
   val warningsAsErrors: Boolean,
+  val applyStdLib: Boolean = false,
   val kotlinSources: List<FileSource> = emptyList(),
   val javaSources: List<FileSource> = emptyList(),
   val classpath: List<String>,
   val bootClasspath: List<String>,
   val pluginClasspath: List<String> = emptyList(),
-  val pluginOptions: List<String> = emptyList()
+  val pluginOptions: List<String> = emptyList(),
+  val androidMaterializer: AndroidMaterializer? = null
 )
 
 enum class Severity	{

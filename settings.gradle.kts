@@ -5,10 +5,23 @@
  * For more detailed information on multi-project builds, please refer to https://docs.gradle.org/9.2.1/userguide/multi_project_builds.html in the Gradle documentation.
  */
 
-plugins {
-    // Apply the foojay-resolver plugin to allow automatic download of JDKs
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
+ pluginManagement {
+     repositories {
+         google()
+         mavenCentral()
+         gradlePluginPortal()
+     }
+ }
 
-rootProject.name = "compiler"
-include("lib")
+ dependencyResolutionManagement {
+     repositories {
+         google()
+         maven {
+             url = uri("${System.getProperty("user.home")}/.m2/repository")
+         }
+         
+         mavenCentral()
+     }
+ }
+
+rootProject.name = "bytesmith"

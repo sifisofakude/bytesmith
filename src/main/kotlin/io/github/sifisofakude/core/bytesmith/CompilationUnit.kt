@@ -1,6 +1,6 @@
 package io.github.sifisofakude.core.bytesmith
 
-import java.io.File
+import io.github.sifisofakude.filesystem.FileOperation
 import org.eclipse.jdt.internal.compiler.env.ICompilationUnit
 
 /**
@@ -103,8 +103,7 @@ class CompilationUnit(sourceCode: String, fileName: String) : ICompilationUnit  
 
   init  {
     // Define typeName variable
-    val file = File(fileName)
-    typeName = file.name.replace(""".java$""".toRegex(),"")
+    typeName = FileOperation(fileName).nameWithoutExtension
 
     var tmpFullTypeName: String? = null
     val tmpPackageName = mutableListOf<CharArray>()

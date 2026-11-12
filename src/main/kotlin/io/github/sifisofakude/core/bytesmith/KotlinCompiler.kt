@@ -38,10 +38,11 @@ import java.io.File
  * @property fs filesystem abstraction used for path resolution
  * @property listener compilation event listener
  */
-class KotlinCompiler(
-	private val fs: FileSystemUtil,
+class KotlinJvmCompiler(
 	val listener: ICompilationListener = DefaultCompilationListener()
 )	{
+	private val fs = FileSystems.current
+	
 	/**
 	 * Compiles Kotlin source files into JVM bytecode.
 	 *
@@ -108,7 +109,7 @@ class KotlinCompiler(
 	    freeArgs = kotlinSources
 	    destination = outputPath
 	    classpath = compilerClasspath
-	    noStdlib = true
+	    noStdlib = options.applyStdLib
 	    jdkHome = null
 	    noJdk = compilerNoJdk
 	    pluginClasspaths = options.pluginClasspath.toTypedArray()

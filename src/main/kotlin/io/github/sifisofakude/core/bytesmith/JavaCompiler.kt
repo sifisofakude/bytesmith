@@ -63,9 +63,9 @@ class EmptyBootClasspathException : Exception("No boot classpath found")
  * @property listener compilation event listener (defaults to [DefaultCompilationListener])
  */
 class JavaCompiler(
-	private val fs: FileSystemUtil,
 	private val listener: ICompilationListener = DefaultCompilationListener(),
 )	{
+	private val fs = FileSystems.current
 	private val platformDetector = PlatformDetector()
 	
 	/**
@@ -122,7 +122,6 @@ class JavaCompiler(
 
 
 		if(listener is DefaultCompilationListener)	{
-			listener.setFileSystem(fs)
 			outputDir?.let	{
 				listener.setOutputDirectory(it)
 			}
@@ -166,7 +165,7 @@ class JavaCompiler(
 	/**
 	 * Converts resolved [FileSource] entries into ECJ compilation units.
 	 *
-	 * This method reads file contents through [FileSystemUtil.openInputStream]
+	 * This method reads file contents through [FileSystemUtil.readText]
 	 * and wraps them into [CompilationUnit] objects required by ECJ.
 	 *
 	 * Each unit contains:
@@ -181,23 +180,11 @@ class JavaCompiler(
 		val result = mutableListOf<CompilationUnit>()
 
 		files.forEach	{ fileSource ->
-			fs.openInputStream(fileSource.absolutePath)?.use	{ stream ->
-				val sourceCode = buildString {
-			    BufferedReader(
-		        InputStreamReader(stream, StandardCharsets.UTF_8)
-			    ).use { reader ->
-		        var line = reader.readLine()
-		        while (line != null) {
-	            appendLine(line)
-	            line = reader.readLine()
-		        }
-			    }
-				}
-
+			fs.readText(fileSource.absolutePath)?.let	{
 				result.add(
 					CompilationUnit(
-						fileName = fileSource.relativePath,
-						sourceCode = sourceCode
+						sourceCode = it,
+						fileName = fileSource.absolutePath
 					)
 				)
 			}
